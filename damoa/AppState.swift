@@ -50,6 +50,7 @@ final class AppState {
     var activeTimerID: UUID? = nil
     var remainingSeconds: Int = 0
     var isPaused: Bool = false
+    var streakDays: Int = 0
 
     var onMenuBarTextChange: ((String) -> Void)?
 
@@ -57,9 +58,17 @@ final class AppState {
     private var currentDayRecord: DayRecord?
     private var timerRef: Timer?
     private var sessionDuration: Int = 0
+    private var _yesterdayMinutes: Int? = nil
 
     var totalAccumulatedMinutes: Int {
         todos.reduce(0) { $0 + $1.accumulatedMinutes }
+    }
+
+    /// 오늘 누적 - 어제 누적. 어제 기록 없으면 nil, 차이 0이면 nil.
+    var yesterdayDiff: Int? {
+        guard let yd = _yesterdayMinutes else { return nil }
+        let diff = totalAccumulatedMinutes - yd
+        return diff != 0 ? diff : nil
     }
 
     var menuBarText: String {
@@ -87,10 +96,45 @@ final class AppState {
         } else {
             let record = DayRecord(date: today)
             modelContext.insert(record)
-            save()
             currentDayRecord = record
             todos = []
+            try? modelContext.save()
         }
+        loadYesterdayMinutes()
+        refreshStreak()
+    }
+
+    private func loadYesterdayMinutes() {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        let yesterday = f.string(from: Calendar.current.date(byAdding: .day, value: -1, to: Date())!)
+        let descriptor = FetchDescriptor<DayRecord>(predicate: #Predicate { $0.date == yesterday })
+        _yesterdayMinutes = (try? modelContext.fetch(descriptor))?.first?.totalMinutes
+    }
+
+    private func refreshStreak() {
+        let descriptor = FetchDescriptor<DayRecord>()
+        let records = (try? modelContext.fetch(descriptor)) ?? []
+        let dateSet = Set(records.filter { $0.totalMinutes > 0 }.map { $0.date })
+
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        let cal = Calendar.current
+        var count = 0
+        var checkDate = Date()
+
+        // 오늘 0m이면 어제부터 시작
+        if totalAccumulatedMinutes == 0 {
+            checkDate = cal.date(byAdding: .day, value: -1, to: checkDate)!
+        }
+
+        while true {
+            let ds = f.string(from: checkDate)
+            guard dateSet.contains(ds) else { break }
+            count += 1
+            checkDate = cal.date(byAdding: .day, value: -1, to: checkDate)!
+        }
+        streakDays = count
     }
 
     // MARK: - CRUD
@@ -109,6 +153,7 @@ final class AppState {
         guard let item = todos.first(where: { $0.id == id }) else { return }
         if activeTimerID == id {
             stopAndAccumulate()
+            notifyMenuBar()
         }
         item.isCompleted.toggle()
         item.completedAt = item.isCompleted ? Date() : nil
@@ -162,7 +207,6 @@ final class AppState {
         completed.forEach { modelContext.delete($0) }
         todos.removeAll { $0.isCompleted }
         todos.forEach { $0.accumulatedMinutes = 0 }
-        updateDayTotal()
         save()
         notifyMenuBar()
     }
@@ -175,7 +219,6 @@ final class AppState {
             let elapsedMinutes = elapsed / 60
             if elapsedMinutes > 0, let item = todos.first(where: { $0.id == id }) {
                 item.accumulatedMinutes += elapsedMinutes
-                updateDayTotal()
                 save()
             }
         }
@@ -210,12 +253,10 @@ final class AppState {
         }
     }
 
-    private func updateDayTotal() {
-        currentDayRecord?.totalMinutes = totalAccumulatedMinutes
-    }
-
     private func save() {
+        currentDayRecord?.totalMinutes = totalAccumulatedMinutes
         try? modelContext.save()
+        refreshStreak()
     }
 
     private func notifyMenuBar() {

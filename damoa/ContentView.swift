@@ -12,6 +12,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(AppState.self) private var state
     @State private var newTodoText = ""
+    @State private var showHistory = false
 
     private var dateString: String {
         let f = DateFormatter()
@@ -34,6 +35,16 @@ struct ContentView: View {
     }
 
     var body: some View {
+        if showHistory {
+            HistoryView(onBack: { showHistory = false })
+        } else {
+            mainContent
+        }
+    }
+
+    // MARK: - Main Content
+
+    private var mainContent: some View {
         VStack(spacing: 0) {
             headerSection
             Divider()
@@ -57,6 +68,12 @@ struct ContentView: View {
                 .font(.system(size: 28, weight: .medium))
                 .tracking(-0.5)
                 .foregroundStyle(.primary)
+            if let diff = state.yesterdayDiff {
+                let sign = diff > 0 ? "+" : "-"
+                Text("\(sign)어제보다 \(formatTotal(abs(diff)))")
+                    .font(.system(size: 12))
+                    .foregroundStyle(diff > 0 ? Color.green : Color.orange)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
@@ -119,11 +136,18 @@ struct ContentView: View {
     // MARK: - Footer
 
     private var footerSection: some View {
-        HStack {
-            Button("기록") { }
+        HStack(spacing: 8) {
+            Button("기록") { showHistory = true }
                 .buttonStyle(.plain)
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
+
+            if state.streakDays > 0 {
+                Text("\(state.streakDays)일 연속")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+
             Spacer()
         }
         .padding(.horizontal, 16)
