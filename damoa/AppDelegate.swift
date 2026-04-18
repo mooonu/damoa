@@ -12,20 +12,27 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
+    private let appState = AppState()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem.button {
-            button.title = "0h 00m"
+            button.title = appState.menuBarText
             button.action = #selector(togglePopover)
             button.target = self
         }
 
+        appState.onMenuBarTextChange = { [weak self] text in
+            self?.statusItem.button?.title = text
+        }
+
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 320, height: 480)
         popover.behavior = .transient
-        popover.contentViewController = NSHostingController(rootView: ContentView())
+        let contentView = ContentView().environment(appState)
+        let controller = NSHostingController(rootView: contentView)
+        controller.sizingOptions = .preferredContentSize
+        popover.contentViewController = controller
     }
 
     @objc func togglePopover() {

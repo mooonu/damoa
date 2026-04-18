@@ -7,6 +7,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - When creating git commits, do NOT include a `Co-Authored-By` line.
 - After every commit, update CLAUDE.md to reflect any architectural or structural changes made in that task.
 - Always stage and commit CLAUDE.md together with the related source changes in a single commit — no separate commit message needed for it.
+- Never run `git push` unless the user explicitly asks.
+- Commit at feature-level milestones only — not after every sub-task. Multiple file changes that together complete one feature = one commit.
+
+## Design Principles (strictly enforced)
+
+- Use system fonts only (`.system`)
+- Use SF Symbols icons only
+- Use semantic colors only (`Color.primary`, `.secondary`, `.accentColor`) — no hardcoded color values
+- Spacing in 8pt increments (8, 16, 24)
+- Prefer SwiftUI built-in components (`List`, `TextField`, `Button`, `Toggle`)
+- Completed items: apply `.strikethrough` + `.secondary` color to text
+- Do not display redundant zero values (e.g. `0h 00m` → `0m`)
 
 ## Project Overview
 
@@ -31,8 +43,21 @@ Open in Xcode: `open damoa.xcodeproj`
 macOS menu bar only app:
 
 - `damoa/damoaApp.swift` — app entry point (`@main`), uses `@NSApplicationDelegateAdaptor(AppDelegate.self)`, body is `Settings { EmptyView() }` (no visible window)
-- `damoa/AppDelegate.swift` — `NSStatusItem` ("0h 00m" 텍스트), 클릭 시 `NSPopover`(320×480)로 `ContentView` 표시
-- `damoa/ContentView.swift` — 팝오버 내부 할 일 목록 UI. `TodoItem` 모델(`@State`)로 임시 관리. 날짜 헤더, 할 일 추가 입력, 체크박스/시간/타이머 버튼 행, 총 공부 시간 푸터 포함
+- `damoa/AppDelegate.swift` — `NSStatusItem` 생성, 클릭 시 `NSPopover`(320×480)로 `ContentView` 표시. `AppState` 인스턴스를 소유하고 `onMenuBarTextChange` 콜백으로 메뉴바 텍스트 갱신
+- `damoa/AppState.swift` — `@Observable @MainActor` 공유 상태. `TodoItem` 모델, 타이머 로직(카운트다운, 일시정지/재개, 세션 누적), 메뉴바 텍스트 포맷 헬퍼(`formatTotal`, `formatAccumulated`, `formatCountdown`) 포함
+- `damoa/ContentView.swift` — 팝오버 UI(320×480). 상단 날짜/누적시간 헤더, 투명 입력 필드, 할 일 목록(진행 중/대기/완료 구분 행), 하단 기록/새 날 시작 푸터. `AppState`를 `.environment`로 주입받음
 - `damoa/Assets.xcassets` — asset catalog
+
+### 타이머 동작
+- `PendingTodoRow`의 ▶ 버튼(Menu) → 5/10/15/20/25/30분 선택 → 카운트다운 시작
+- 동시에 하나의 타이머만 실행 (새 타이머 시작 시 기존 취소)
+- 타이머 가동 중: 메뉴바 텍스트 = 카운트다운 (`"24:38"`)
+- 타이머 미가동: 메뉴바 텍스트 = 총 누적시간
+- 0 도달 시 해당 항목에 세션 시간 자동 누적
+
+### 누적시간 표시 규칙
+- 0초: 표시 안 함 (항목 행), `"0m"` (헤더 합계)
+- 1~59분: `"32m"`
+- 60분 이상: `"1h 5m"`
 
 The project uses **PBXFileSystemSynchronizedRootGroup**, meaning Xcode automatically tracks new files added to the `damoa/` directory without manually adding them to `project.pbxproj`.

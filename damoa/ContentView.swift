@@ -7,145 +7,286 @@
 
 import SwiftUI
 
-struct TodoItem: Identifiable {
-    let id = UUID()
-    var text: String
-    var isCompleted: Bool = false
-    var elapsedSeconds: Int = 0
-}
+// MARK: - ContentView
 
 struct ContentView: View {
-    @State private var todos: [TodoItem] = []
-    @State private var newTodoText: String = ""
+    @Environment(AppState.self) private var state
+    @State private var newTodoText = ""
 
-    private var todayString: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "yyyy년 M월 d일 EEEE"
-        return formatter.string(from: Date())
+    private var dateString: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateFormat = "M월 d일 EEEE"
+        return f.string(from: Date())
     }
 
-    private var totalSeconds: Int {
-        todos.reduce(0) { $0 + $1.elapsedSeconds }
+    private var activeTodo: TodoItem? {
+        guard let id = state.activeTimerID else { return nil }
+        return state.todos.first { $0.id == id }
     }
 
-    private func formattedTotal() -> String {
-        let h = totalSeconds / 3600
-        let m = (totalSeconds % 3600) / 60
-        return "\(h)h \(String(format: "%02d", m))m"
+    private var pendingTodos: [TodoItem] {
+        state.todos.filter { !$0.isCompleted && $0.id != state.activeTimerID }
+    }
+
+    private var completedTodos: [TodoItem] {
+        state.todos.filter { $0.isCompleted }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // 오늘 날짜
-            Text(todayString)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .padding(.vertical, 12)
-
+            headerSection
             Divider()
+            inputSection
+            Divider()
+            todoListSection
+            Divider()
+            footerSection
+        }
+        .frame(width: 320, height: 480)
+    }
 
-            // 할 일 목록
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach($todos) { $todo in
-                        TodoRowView(todo: $todo)
-                        Divider()
+    // MARK: - Header
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(dateString)
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+            Text(formatTotal(state.totalAccumulatedSeconds))
+                .font(.system(size: 28, weight: .medium))
+                .tracking(-0.5)
+                .foregroundStyle(.primary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
+    }
+
+    // MARK: - Input
+
+    private var inputSection: some View {
+        HStack(spacing: 8) {
+            TextField("할 일 추가", text: $newTodoText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 14))
+                .onSubmit { submit() }
+
+            Button {
+                submit()
+            } label: {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(
+                        newTodoText.trimmingCharacters(in: .whitespaces).isEmpty
+                            ? Color.secondary.opacity(0.4)
+                            : Color.accentColor
+                    )
+            }
+            .buttonStyle(.plain)
+            .disabled(newTodoText.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+    }
+
+    // MARK: - Todo List
+
+    private var todoListSection: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                if let active = activeTodo {
+                    ActiveTodoRow(todo: active, state: state)
+                }
+
+                ForEach(pendingTodos) { todo in
+                    PendingTodoRow(todo: todo, state: state)
+                }
+
+                if !completedTodos.isEmpty {
+                    Divider()
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                    ForEach(completedTodos) { todo in
+                        CompletedTodoRow(todo: todo, state: state)
                     }
                 }
             }
-
-            Divider()
-
-            // 입력 필드
-            HStack(spacing: 8) {
-                TextField("할 일 추가", text: $newTodoText)
-                    .textFieldStyle(.plain)
-                    .onSubmit { addTodo() }
-
-                Button("추가") { addTodo() }
-                    .disabled(newTodoText.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-
-            Divider()
-
-            // 총 공부 시간
-            HStack {
-                Text("오늘 총 공부:")
-                    .foregroundStyle(.secondary)
-                    .font(.subheadline)
-                Spacer()
-                Text(formattedTotal())
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
         }
+        .frame(maxHeight: .infinity)
     }
 
-    private func addTodo() {
+    // MARK: - Footer
+
+    private var footerSection: some View {
+        HStack {
+            Button("기록") { }
+                .buttonStyle(.plain)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("새 날 시작") {
+                state.resetDay()
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+    }
+
+    private func submit() {
         let trimmed = newTodoText.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        todos.append(TodoItem(text: trimmed))
+        state.addTodo(text: trimmed)
         newTodoText = ""
     }
 }
 
-struct TodoRowView: View {
-    @Binding var todo: TodoItem
+// MARK: - Active Todo Row
 
-    private func formattedTime(_ seconds: Int) -> String {
-        if seconds < 3600 {
-            return "\(seconds / 60)m"
+struct ActiveTodoRow: View {
+    let todo: TodoItem
+    let state: AppState
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Rectangle()
+                .fill(Color.accentColor)
+                .frame(width: 3)
+
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(todo.text)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    Text(formatCountdown(state.remainingSeconds))
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.accentColor)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button {
+                    state.togglePause()
+                } label: {
+                    Image(systemName: state.isPaused ? "play.fill" : "pause.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.accentColor)
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.leading, 13)
+            .padding(.trailing, 16)
+            .padding(.vertical, 10)
         }
-        let h = seconds / 3600
-        let m = (seconds % 3600) / 60
-        return "\(h)h \(String(format: "%02d", m))m"
+        .background(Color.accentColor.opacity(0.08))
     }
+}
+
+// MARK: - Pending Todo Row
+
+struct PendingTodoRow: View {
+    let todo: TodoItem
+    let state: AppState
 
     var body: some View {
         HStack(spacing: 8) {
-            // 체크박스
             Button {
-                todo.isCompleted.toggle()
+                state.toggleCompletion(id: todo.id)
             } label: {
-                Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(todo.isCompleted ? Color.accentColor : .secondary)
-                    .font(.system(size: 16))
+                Circle()
+                    .strokeBorder(Color.secondary.opacity(0.5), lineWidth: 1.5)
+                    .frame(width: 18, height: 18)
             }
             .buttonStyle(.plain)
 
-            // 할 일 텍스트
             Text(todo.text)
-                .strikethrough(todo.isCompleted)
-                .foregroundStyle(todo.isCompleted ? .secondary : .primary)
+                .font(.system(size: 14))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // 누적 시간
-            Text(formattedTime(todo.elapsedSeconds))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(minWidth: 24, alignment: .trailing)
+            if let timeStr = formatAccumulated(todo.accumulatedSeconds) {
+                Text(timeStr)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
 
-            // 타이머 시작 버튼
-            Button {
-                // 타이머 동작은 추후 구현
+            Menu {
+                ForEach([5, 10, 15, 20, 25, 30], id: \.self) { min in
+                    Button("\(min)분") {
+                        state.startTimer(for: todo.id, minutes: min)
+                    }
+                }
             } label: {
                 Image(systemName: "play.fill")
-                    .font(.caption)
+                    .font(.system(size: 11))
                     .foregroundStyle(Color.accentColor)
+                    .frame(width: 24, height: 24)
             }
-            .buttonStyle(.plain)
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
         .padding(.vertical, 10)
     }
 }
 
+// MARK: - Completed Todo Row
+
+struct CompletedTodoRow: View {
+    let todo: TodoItem
+    let state: AppState
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Button {
+                state.toggleCompletion(id: todo.id)
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(Color.secondary)
+                        .frame(width: 18, height: 18)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+            }
+            .buttonStyle(.plain)
+
+            Text(todo.text)
+                .font(.system(size: 14))
+                .strikethrough()
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let timeStr = formatAccumulated(todo.accumulatedSeconds) {
+                Text(timeStr)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .opacity(0.6)
+    }
+}
+
+// MARK: - Preview
+
 #Preview {
-    ContentView()
-        .frame(width: 320, height: 480)
+    let state = AppState()
+    state.todos = [
+        TodoItem(text: "SwiftUI 공부하기", accumulatedSeconds: 1800),
+        TodoItem(text: "운동하기"),
+        TodoItem(text: "책 읽기", isCompleted: true, accumulatedSeconds: 3600),
+    ]
+    return ContentView()
+        .environment(state)
 }
