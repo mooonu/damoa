@@ -7,14 +7,24 @@
 
 import AppKit
 import SwiftUI
+import SwiftData
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
-    private let appState = AppState()
+    private var appState: AppState!
+    private var modelContainer: ModelContainer!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        do {
+            modelContainer = try ModelContainer(for: TodoItem.self, DayRecord.self)
+        } catch {
+            fatalError("ModelContainer 생성 실패: \(error)")
+        }
+
+        appState = AppState(modelContext: modelContainer.mainContext)
+
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem.button {
@@ -29,7 +39,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         popover = NSPopover()
         popover.behavior = .transient
-        let contentView = ContentView().environment(appState)
+        let contentView = ContentView()
+            .environment(appState)
+            .modelContainer(modelContainer)
         let controller = NSHostingController(rootView: contentView)
         controller.sizingOptions = .preferredContentSize
         popover.contentViewController = controller

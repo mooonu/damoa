@@ -7,31 +7,23 @@
 
 import SwiftUI
 import Observation
-
-// MARK: - Model
-
-struct TodoItem: Identifiable {
-    let id = UUID()
-    var text: String
-    var isCompleted: Bool = false
-    var accumulatedSeconds: Int = 0
-}
+import SwiftData
 
 // MARK: - Format Helpers
 
-func formatAccumulated(_ seconds: Int) -> String? {
-    guard seconds > 0 else { return nil }
-    let h = seconds / 3600
-    let m = (seconds % 3600) / 60
+func formatAccumulated(_ minutes: Int) -> String? {
+    guard minutes > 0 else { return nil }
+    let h = minutes / 60
+    let m = minutes % 60
     if h == 0 { return "\(m)m" }
     if m == 0 { return "\(h)h" }
     return "\(h)h \(m)m"
 }
 
-func formatTotal(_ seconds: Int) -> String {
-    guard seconds > 0 else { return "0m" }
-    let h = seconds / 3600
-    let m = (seconds % 3600) / 60
+func formatTotal(_ minutes: Int) -> String {
+    guard minutes > 0 else { return "0m" }
+    let h = minutes / 60
+    let m = minutes % 60
     if h == 0 { return "\(m)m" }
     if m == 0 { return "\(h)h" }
     return "\(h)h \(m)m"
@@ -41,6 +33,12 @@ func formatCountdown(_ seconds: Int) -> String {
     let m = seconds / 60
     let s = seconds % 60
     return String(format: "%d:%02d", m, s)
+}
+
+func todayDateString() -> String {
+    let f = DateFormatter()
+    f.dateFormat = "yyyy-MM-dd"
+    return f.string(from: Date())
 }
 
 // MARK: - AppState
@@ -55,41 +53,81 @@ final class AppState {
 
     var onMenuBarTextChange: ((String) -> Void)?
 
+    private let modelContext: ModelContext
+    private var currentDayRecord: DayRecord?
     private var timerRef: Timer?
     private var sessionDuration: Int = 0
 
-    var totalAccumulatedSeconds: Int {
-        todos.reduce(0) { $0 + $1.accumulatedSeconds }
+    var totalAccumulatedMinutes: Int {
+        todos.reduce(0) { $0 + $1.accumulatedMinutes }
     }
 
     var menuBarText: String {
         if activeTimerID != nil {
             return formatCountdown(remainingSeconds)
         }
-        return formatTotal(totalAccumulatedSeconds)
+        return formatTotal(totalAccumulatedMinutes)
     }
+
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+        loadToday()
+    }
+
+    // MARK: - Load
+
+    private func loadToday() {
+        let today = todayDateString()
+        let descriptor = FetchDescriptor<DayRecord>(
+            predicate: #Predicate { $0.date == today }
+        )
+        if let record = (try? modelContext.fetch(descriptor))?.first {
+            currentDayRecord = record
+            todos = record.todos.sorted { $0.createdAt < $1.createdAt }
+        } else {
+            let record = DayRecord(date: today)
+            modelContext.insert(record)
+            save()
+            currentDayRecord = record
+            todos = []
+        }
+    }
+
+    // MARK: - CRUD
 
     func addTodo(text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        todos.append(TodoItem(text: trimmed))
+        let item = TodoItem(title: trimmed, date: todayDateString())
+        item.dayRecord = currentDayRecord
+        modelContext.insert(item)
+        todos.append(item)
+        save()
     }
 
     func toggleCompletion(id: UUID) {
-        guard let idx = todos.firstIndex(where: { $0.id == id }) else { return }
+        guard let item = todos.first(where: { $0.id == id }) else { return }
         if activeTimerID == id {
             stopAndAccumulate()
         }
-        todos[idx].isCompleted.toggle()
+        item.isCompleted.toggle()
+        item.completedAt = item.isCompleted ? Date() : nil
+        save()
     }
 
     func deleteTodo(id: UUID) {
         if activeTimerID == id {
             cancelTimer()
         }
-        todos.removeAll { $0.id == id }
+        if let item = todos.first(where: { $0.id == id }) {
+            modelContext.delete(item)
+            todos.removeAll { $0.id == id }
+        }
+        save()
         notifyMenuBar()
     }
+
+    // MARK: - Timer
 
     func startTimer(for id: UUID, minutes: Int) {
         stopAndAccumulate()
@@ -120,18 +158,25 @@ final class AppState {
 
     func resetDay() {
         cancelTimer()
+        let completed = todos.filter { $0.isCompleted }
+        completed.forEach { modelContext.delete($0) }
         todos.removeAll { $0.isCompleted }
-        for i in todos.indices {
-            todos[i].accumulatedSeconds = 0
-        }
+        todos.forEach { $0.accumulatedMinutes = 0 }
+        updateDayTotal()
+        save()
         notifyMenuBar()
     }
+
+    // MARK: - Private
 
     private func stopAndAccumulate() {
         if let id = activeTimerID, sessionDuration > 0 {
             let elapsed = sessionDuration - remainingSeconds
-            if elapsed > 0, let idx = todos.firstIndex(where: { $0.id == id }) {
-                todos[idx].accumulatedSeconds += elapsed
+            let elapsedMinutes = elapsed / 60
+            if elapsedMinutes > 0, let item = todos.first(where: { $0.id == id }) {
+                item.accumulatedMinutes += elapsedMinutes
+                updateDayTotal()
+                save()
             }
         }
         cancelTimer()
@@ -155,7 +200,7 @@ final class AppState {
     }
 
     private func tick() {
-        guard let id = activeTimerID, !isPaused else { return }
+        guard activeTimerID != nil, !isPaused else { return }
         if remainingSeconds > 0 {
             remainingSeconds -= 1
             notifyMenuBar()
@@ -163,6 +208,14 @@ final class AppState {
         if remainingSeconds == 0 {
             stopTimer()
         }
+    }
+
+    private func updateDayTotal() {
+        currentDayRecord?.totalMinutes = totalAccumulatedMinutes
+    }
+
+    private func save() {
+        try? modelContext.save()
     }
 
     private func notifyMenuBar() {

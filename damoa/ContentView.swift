@@ -53,7 +53,7 @@ struct ContentView: View {
             Text(dateString)
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary)
-            Text(formatTotal(state.totalAccumulatedSeconds))
+            Text(formatTotal(state.totalAccumulatedMinutes))
                 .font(.system(size: 28, weight: .medium))
                 .tracking(-0.5)
                 .foregroundStyle(.primary)
@@ -99,7 +99,7 @@ struct ContentView: View {
                     ActiveTodoRow(todo: active, state: state)
                 }
 
-                ForEach(pendingTodos) { todo in
+                ForEach(pendingTodos, id: \.id) { todo in
                     PendingTodoRow(todo: todo, state: state)
                 }
 
@@ -107,7 +107,7 @@ struct ContentView: View {
                     Divider()
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
-                    ForEach(completedTodos) { todo in
+                    ForEach(completedTodos, id: \.id) { todo in
                         CompletedTodoRow(todo: todo, state: state)
                     }
                 }
@@ -152,7 +152,7 @@ struct ActiveTodoRow: View {
 
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(todo.text)
+                    Text(todo.title)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
@@ -205,13 +205,13 @@ struct PendingTodoRow: View {
             }
             .buttonStyle(.plain)
 
-            Text(todo.text)
+            Text(todo.title)
                 .font(.system(size: 14))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            if let timeStr = formatAccumulated(todo.accumulatedSeconds) {
+            if let timeStr = formatAccumulated(todo.accumulatedMinutes) {
                 Text(timeStr)
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
@@ -267,14 +267,14 @@ struct CompletedTodoRow: View {
             }
             .buttonStyle(.plain)
 
-            Text(todo.text)
+            Text(todo.title)
                 .font(.system(size: 14))
                 .strikethrough()
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            if let timeStr = formatAccumulated(todo.accumulatedSeconds) {
+            if let timeStr = formatAccumulated(todo.accumulatedMinutes) {
                 Text(timeStr)
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
@@ -296,12 +296,5 @@ struct CompletedTodoRow: View {
 // MARK: - Preview
 
 #Preview {
-    let state = AppState()
-    state.todos = [
-        TodoItem(text: "SwiftUI 공부하기", accumulatedSeconds: 1800),
-        TodoItem(text: "운동하기"),
-        TodoItem(text: "책 읽기", isCompleted: true, accumulatedSeconds: 3600),
-    ]
-    return ContentView()
-        .environment(state)
+    ContentView()
 }
