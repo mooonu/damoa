@@ -78,7 +78,7 @@ final class AppState {
     func toggleCompletion(id: UUID) {
         guard let idx = todos.firstIndex(where: { $0.id == id }) else { return }
         if activeTimerID == id {
-            cancelTimer()
+            stopAndAccumulate()
         }
         todos[idx].isCompleted.toggle()
     }
@@ -92,7 +92,7 @@ final class AppState {
     }
 
     func startTimer(for id: UUID, minutes: Int) {
-        cancelTimer()
+        stopAndAccumulate()
         activeTimerID = id
         sessionDuration = minutes * 60
         remainingSeconds = minutes * 60
@@ -114,7 +114,7 @@ final class AppState {
     }
 
     func stopTimer() {
-        cancelTimer()
+        stopAndAccumulate()
         notifyMenuBar()
     }
 
@@ -125,6 +125,16 @@ final class AppState {
             todos[i].accumulatedSeconds = 0
         }
         notifyMenuBar()
+    }
+
+    private func stopAndAccumulate() {
+        if let id = activeTimerID, sessionDuration > 0 {
+            let elapsed = sessionDuration - remainingSeconds
+            if elapsed > 0, let idx = todos.firstIndex(where: { $0.id == id }) {
+                todos[idx].accumulatedSeconds += elapsed
+            }
+        }
+        cancelTimer()
     }
 
     private func cancelTimer() {
@@ -151,9 +161,6 @@ final class AppState {
             notifyMenuBar()
         }
         if remainingSeconds == 0 {
-            if let idx = todos.firstIndex(where: { $0.id == id }) {
-                todos[idx].accumulatedSeconds += sessionDuration
-            }
             stopTimer()
         }
     }
