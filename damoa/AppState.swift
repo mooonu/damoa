@@ -83,6 +83,14 @@ final class AppState {
         todos[idx].isCompleted.toggle()
     }
 
+    func deleteTodo(id: UUID) {
+        if activeTimerID == id {
+            cancelTimer()
+        }
+        todos.removeAll { $0.id == id }
+        notifyMenuBar()
+    }
+
     func startTimer(for id: UUID, minutes: Int) {
         cancelTimer()
         activeTimerID = id

@@ -30,7 +30,7 @@ struct ContentView: View {
     }
 
     private var completedTodos: [TodoItem] {
-        state.todos.filter { $0.isCompleted }
+        Array(state.todos.filter { $0.isCompleted }.suffix(3))
     }
 
     var body: some View {
@@ -125,12 +125,6 @@ struct ContentView: View {
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
             Spacer()
-            Button("새 날 시작") {
-                state.resetDay()
-            }
-            .buttonStyle(.plain)
-            .font(.system(size: 12))
-            .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -184,6 +178,13 @@ struct ActiveTodoRow: View {
             .padding(.vertical, 10)
         }
         .background(Color.accentColor.opacity(0.08))
+        .contextMenu {
+            Button(role: .destructive) {
+                state.deleteTodo(id: todo.id)
+            } label: {
+                Label("삭제", systemImage: "trash")
+            }
+        }
     }
 }
 
@@ -234,6 +235,13 @@ struct PendingTodoRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+        .contextMenu {
+            Button(role: .destructive) {
+                state.deleteTodo(id: todo.id)
+            } label: {
+                Label("삭제", systemImage: "trash")
+            }
+        }
     }
 }
 
@@ -275,6 +283,13 @@ struct CompletedTodoRow: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .opacity(0.6)
+        .contextMenu {
+            Button(role: .destructive) {
+                state.deleteTodo(id: todo.id)
+            } label: {
+                Label("삭제", systemImage: "trash")
+            }
+        }
     }
 }
 
