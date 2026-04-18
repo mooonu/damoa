@@ -31,8 +31,8 @@ Open in Xcode: `open damoa.xcodeproj`
 macOS menu bar only app:
 
 - `damoa/damoaApp.swift` — app entry point (`@main`), uses `@NSApplicationDelegateAdaptor(AppDelegate.self)`, body is `Settings { EmptyView() }` (no visible window)
-- `damoa/AppDelegate.swift` — `NSStatusItem` ("0h 00m" 텍스트), 클릭 시 `NSPopover`로 `ContentView` 표시
-- `damoa/ContentView.swift` — 팝오버 내부 SwiftUI 뷰 ("Hello damoa")
+- `damoa/AppDelegate.swift` — `NSStatusItem` ("0h 00m" 텍스트), 클릭 시 `NSPopover`(320×480)로 `ContentView` 표시
+- `damoa/ContentView.swift` — 팝오버 내부 할 일 목록 UI. `TodoItem` 모델(`@State`)로 임시 관리. 날짜 헤더, 할 일 추가 입력, 체크박스/시간/타이머 버튼 행, 총 공부 시간 푸터 포함
 - `damoa/Assets.xcassets` — asset catalog
 
 The project uses **PBXFileSystemSynchronizedRootGroup**, meaning Xcode automatically tracks new files added to the `damoa/` directory without manually adding them to `project.pbxproj`.
