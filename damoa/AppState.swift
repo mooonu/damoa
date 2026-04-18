@@ -51,6 +51,7 @@ final class AppState {
     var remainingSeconds: Int = 0
     var isPaused: Bool = false
     var streakDays: Int = 0
+    var popoverOpenToken: Int = 0
 
     var onMenuBarTextChange: ((String) -> Void)?
 

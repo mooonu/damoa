@@ -13,6 +13,7 @@ struct ContentView: View {
     @Environment(AppState.self) private var state
     @State private var newTodoText = ""
     @State private var showHistory = false
+    @State private var displayedStreak: Int = 0
 
     private var dateString: String {
         let f = DateFormatter()
@@ -32,6 +33,10 @@ struct ContentView: View {
 
     private var completedTodos: [TodoItem] {
         Array(state.todos.filter { $0.isCompleted }.suffix(3))
+    }
+
+    private var streakColor: Color {
+        displayedStreak >= 3 ? Color.teal : Color.orange
     }
 
     var body: some View {
@@ -54,7 +59,10 @@ struct ContentView: View {
             Divider()
             footerSection
         }
-        .frame(width: 320, height: 480)
+        .frame(width: 300)
+        .onChange(of: state.popoverOpenToken) { _, _ in
+            animateStreak()
+        }
     }
 
     // MARK: - Header
@@ -130,35 +138,59 @@ struct ContentView: View {
                 }
             }
         }
-        .frame(maxHeight: .infinity)
+        .frame(maxHeight: 400)
     }
 
     // MARK: - Footer
 
     private var footerSection: some View {
-        HStack(spacing: 8) {
+        HStack {
             Button("기록") { showHistory = true }
                 .buttonStyle(.plain)
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
 
-            if state.streakDays > 0 {
-                Text("\(state.streakDays)일 연속")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-            }
-
             Spacer()
+
+            if state.streakDays > 0 {
+                HStack(spacing: 0) {
+                    Text("\(displayedStreak)")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(streakColor)
+                    Text("일 연속")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
     }
+
+    // MARK: - Helpers
 
     private func submit() {
         let trimmed = newTodoText.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
         state.addTodo(text: trimmed)
         newTodoText = ""
+    }
+
+    private func animateStreak() {
+        let target = state.streakDays
+        guard target > 0 else {
+            displayedStreak = 0
+            return
+        }
+        displayedStreak = 0
+        let steps = min(target, 20)
+        let stepDuration = 0.3 / Double(steps)
+        Task { @MainActor in
+            for i in 1...steps {
+                try? await Task.sleep(for: .seconds(stepDuration))
+                displayedStreak = (i == steps) ? target : max(1, target * i / steps)
+            }
+        }
     }
 }
 

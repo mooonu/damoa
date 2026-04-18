@@ -25,7 +25,7 @@ struct HistoryView: View {
                 DayListView(dayRecords: dayRecords, onSelect: { selectedRecord = $0 })
             }
         }
-        .frame(width: 320, height: 480)
+        .frame(width: 300)
     }
 
     private var headerBar: some View {
