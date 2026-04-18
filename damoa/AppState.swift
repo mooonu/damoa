@@ -8,6 +8,7 @@
 import SwiftUI
 import Observation
 import SwiftData
+import UserNotifications
 
 // MARK: - Format Helpers
 
@@ -250,8 +251,25 @@ final class AppState {
             notifyMenuBar()
         }
         if remainingSeconds == 0 {
+            sendCompletionNotification()
             stopTimer()
         }
+    }
+
+    private func sendCompletionNotification() {
+        guard let id = activeTimerID,
+              let todo = todos.first(where: { $0.id == id }) else { return }
+        let minutes = sessionDuration / 60
+        let content = UNMutableNotificationContent()
+        content.title = "타이머 완료"
+        content.body = "\(todo.title) - \(minutes)분 완료"
+        content.sound = .default
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
     }
 
     private func save() {

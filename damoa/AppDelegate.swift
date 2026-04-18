@@ -8,6 +8,7 @@
 import AppKit
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -17,6 +18,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var modelContainer: ModelContainer!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        UNUserNotificationCenter.current().delegate = self
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+
         do {
             modelContainer = try ModelContainer(for: TodoItem.self, DayRecord.self)
         } catch {
@@ -47,6 +51,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.contentViewController = controller
     }
 
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+
+extension AppDelegate: UNUserNotificationCenterDelegate {
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
+    }
+}
+
+extension AppDelegate {
     @objc func togglePopover() {
         guard let button = statusItem.button else { return }
 
