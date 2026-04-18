@@ -53,6 +53,7 @@ final class AppState {
     var isPaused: Bool = false
     var streakDays: Int = 0
     var popoverOpenToken: Int = 0
+    var editingTodoID: UUID? = nil
 
     var onMenuBarTextChange: ((String) -> Void)?
 
@@ -140,6 +141,19 @@ final class AppState {
     }
 
     // MARK: - CRUD
+
+    func startEditing(id: UUID) {
+        editingTodoID = id
+    }
+
+    func commitEdit(id: UUID, newTitle: String) {
+        editingTodoID = nil
+        let trimmed = newTitle.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty,
+              let item = todos.first(where: { $0.id == id }) else { return }
+        item.title = trimmed
+        save()
+    }
 
     func addTodo(text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespaces)

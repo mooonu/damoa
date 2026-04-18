@@ -199,6 +199,10 @@ struct ContentView: View {
 struct ActiveTodoRow: View {
     let todo: TodoItem
     let state: AppState
+    @State private var draftTitle = ""
+    @FocusState private var isEditing: Bool
+
+    private var editing: Bool { state.editingTodoID == todo.id }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -208,10 +212,22 @@ struct ActiveTodoRow: View {
 
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(todo.title)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
+                    if editing {
+                        TextField("", text: $draftTitle)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 14, weight: .medium))
+                            .focused($isEditing)
+                            .onSubmit { state.commitEdit(id: todo.id, newTitle: draftTitle) }
+                            .onChange(of: isEditing) { _, focused in
+                                guard !focused, state.editingTodoID == todo.id else { return }
+                                state.commitEdit(id: todo.id, newTitle: draftTitle)
+                            }
+                    } else {
+                        Text(todo.title)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                    }
 
                     Text(formatCountdown(state.remainingSeconds))
                         .font(.system(size: 12))
@@ -234,7 +250,16 @@ struct ActiveTodoRow: View {
             .padding(.vertical, 10)
         }
         .background(Color.accentColor.opacity(0.08))
+        .onChange(of: state.editingTodoID) { _, id in
+            if id == todo.id {
+                draftTitle = todo.title
+                isEditing = true
+            }
+        }
         .contextMenu {
+            Button { state.startEditing(id: todo.id) } label: {
+                Label("이름 변경", systemImage: "pencil")
+            }
             Button(role: .destructive) {
                 state.deleteTodo(id: todo.id)
             } label: {
@@ -249,6 +274,10 @@ struct ActiveTodoRow: View {
 struct PendingTodoRow: View {
     let todo: TodoItem
     let state: AppState
+    @State private var draftTitle = ""
+    @FocusState private var isEditing: Bool
+
+    private var editing: Bool { state.editingTodoID == todo.id }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -261,11 +290,24 @@ struct PendingTodoRow: View {
             }
             .buttonStyle(.plain)
 
-            Text(todo.title)
-                .font(.system(size: 14))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if editing {
+                TextField("", text: $draftTitle)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14))
+                    .focused($isEditing)
+                    .onSubmit { state.commitEdit(id: todo.id, newTitle: draftTitle) }
+                    .onChange(of: isEditing) { _, focused in
+                        guard !focused, state.editingTodoID == todo.id else { return }
+                        state.commitEdit(id: todo.id, newTitle: draftTitle)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text(todo.title)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
             if let timeStr = formatAccumulated(todo.accumulatedMinutes) {
                 Text(timeStr)
@@ -291,7 +333,16 @@ struct PendingTodoRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+        .onChange(of: state.editingTodoID) { _, id in
+            if id == todo.id {
+                draftTitle = todo.title
+                isEditing = true
+            }
+        }
         .contextMenu {
+            Button { state.startEditing(id: todo.id) } label: {
+                Label("이름 변경", systemImage: "pencil")
+            }
             Button(role: .destructive) {
                 state.deleteTodo(id: todo.id)
             } label: {
@@ -306,6 +357,10 @@ struct PendingTodoRow: View {
 struct CompletedTodoRow: View {
     let todo: TodoItem
     let state: AppState
+    @State private var draftTitle = ""
+    @FocusState private var isEditing: Bool
+
+    private var editing: Bool { state.editingTodoID == todo.id }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -323,12 +378,25 @@ struct CompletedTodoRow: View {
             }
             .buttonStyle(.plain)
 
-            Text(todo.title)
-                .font(.system(size: 14))
-                .strikethrough()
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if editing {
+                TextField("", text: $draftTitle)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14))
+                    .focused($isEditing)
+                    .onSubmit { state.commitEdit(id: todo.id, newTitle: draftTitle) }
+                    .onChange(of: isEditing) { _, focused in
+                        guard !focused, state.editingTodoID == todo.id else { return }
+                        state.commitEdit(id: todo.id, newTitle: draftTitle)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text(todo.title)
+                    .font(.system(size: 14))
+                    .strikethrough()
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
             if let timeStr = formatAccumulated(todo.accumulatedMinutes) {
                 Text(timeStr)
@@ -338,8 +406,17 @@ struct CompletedTodoRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .opacity(0.6)
+        .opacity(editing ? 1 : 0.6)
+        .onChange(of: state.editingTodoID) { _, id in
+            if id == todo.id {
+                draftTitle = todo.title
+                isEditing = true
+            }
+        }
         .contextMenu {
+            Button { state.startEditing(id: todo.id) } label: {
+                Label("이름 변경", systemImage: "pencil")
+            }
             Button(role: .destructive) {
                 state.deleteTodo(id: todo.id)
             } label: {
