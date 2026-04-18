@@ -44,8 +44,9 @@ macOS menu bar only app:
 
 - `damoa/damoaApp.swift` — app entry point (`@main`), uses `@NSApplicationDelegateAdaptor(AppDelegate.self)`, body is `Settings { EmptyView() }` (no visible window)
 - `damoa/AppDelegate.swift` — `NSStatusItem` 생성, 클릭 시 `NSPopover`(320×480)로 `ContentView` 표시. `AppState` 인스턴스를 소유하고 `onMenuBarTextChange` 콜백으로 메뉴바 텍스트 갱신
-- `damoa/AppState.swift` — `@Observable @MainActor` 공유 상태. `TodoItem` 모델, 타이머 로직(카운트다운, 일시정지/재개, 세션 누적), 메뉴바 텍스트 포맷 헬퍼(`formatTotal`, `formatAccumulated`, `formatCountdown`) 포함
-- `damoa/ContentView.swift` — 팝오버 UI(320×480). 상단 날짜/누적시간 헤더, 투명 입력 필드, 할 일 목록(진행 중/대기/완료 구분 행), 하단 기록/새 날 시작 푸터. `AppState`를 `.environment`로 주입받음
+- `damoa/Models.swift` — SwiftData `@Model` 클래스. `TodoItem`(id, title, isCompleted, accumulatedMinutes, createdAt, completedAt, date, dayRecord)과 `DayRecord`(id, date, totalMinutes, todos) 정의. `DayRecord → TodoItem` cascade 삭제 관계
+- `damoa/AppState.swift` — `@Observable @MainActor` 공유 상태. `ModelContext`를 init에서 주입받아 모든 CRUD를 SwiftData로 처리. 포맷 헬퍼(`formatTotal`, `formatAccumulated`, `formatCountdown`)는 분 단위 기준. 타이머 로직은 초 단위 유지
+- `damoa/ContentView.swift` — 팝오버 UI(320×480). 상단 날짜/누적시간 헤더, 투명 입력 필드, 할 일 목록(진행 중/대기/완료 구분 행), 하단 기록 푸터. `AppState`를 `.environment`로 주입받음
 - `damoa/Assets.xcassets` — asset catalog
 
 ### 타이머 동작
@@ -58,8 +59,9 @@ macOS menu bar only app:
 - 삭제 및 날 초기화 시에는 경과 시간 누적 없이 타이머만 취소 (`cancelTimer()`)
 
 ### 누적시간 표시 규칙
-- 0초: 표시 안 함 (항목 행), `"0m"` (헤더 합계)
+- 0분: 표시 안 함 (항목 행), `"0m"` (헤더 합계)
 - 1~59분: `"32m"`
 - 60분 이상: `"1h 5m"`
+- 저장 단위: 분 (`accumulatedMinutes`). 타이머 내부는 초(`remainingSeconds`, `sessionDuration`) 단위 유지, 누적 시 `/60` 변환
 
 The project uses **PBXFileSystemSynchronizedRootGroup**, meaning Xcode automatically tracks new files added to the `damoa/` directory without manually adding them to `project.pbxproj`.
