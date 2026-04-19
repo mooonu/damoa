@@ -207,7 +207,7 @@ struct ActiveTodoRow: View {
     var body: some View {
         HStack(spacing: 0) {
             Rectangle()
-                .fill(Color.accentColor)
+                .fill(Color.orange)
                 .frame(width: 3)
 
             HStack(spacing: 8) {
@@ -242,8 +242,9 @@ struct ActiveTodoRow: View {
                         } label: {
                             Image(systemName: "play.fill")
                                 .font(.system(size: 11))
-                                .foregroundStyle(Color.accentColor)
-                                .frame(width: 24, height: 24)
+                                .foregroundStyle(Color.orange)
+                                .frame(width: 28, height: 28)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("재개")
@@ -254,7 +255,8 @@ struct ActiveTodoRow: View {
                             Image(systemName: "stop.fill")
                                 .font(.system(size: 11))
                                 .foregroundStyle(Color.secondary)
-                                .frame(width: 24, height: 24)
+                                .frame(width: 28, height: 28)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("중단")
@@ -264,8 +266,9 @@ struct ActiveTodoRow: View {
                         } label: {
                             Image(systemName: "pause.fill")
                                 .font(.system(size: 11))
-                                .foregroundStyle(Color.accentColor)
-                                .frame(width: 24, height: 24)
+                                .foregroundStyle(Color.secondary)
+                                .frame(width: 28, height: 28)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("일시정지")
@@ -276,7 +279,7 @@ struct ActiveTodoRow: View {
             .padding(.trailing, 16)
             .padding(.vertical, 10)
         }
-        .background(state.isPaused ? Color.accentColor.opacity(0.06) : Color.accentColor.opacity(0.10))
+        .background(state.isPaused ? Color.orange.opacity(0.05) : Color.orange.opacity(0.08))
         .onChange(of: state.editingTodoID) { _, id in
             if id == todo.id {
                 draftTitle = todo.title
@@ -352,8 +355,9 @@ struct PendingTodoRow: View {
             } label: {
                 Image(systemName: "play.fill")
                     .font(.system(size: 11))
-                    .foregroundStyle(Color.accentColor)
-                    .frame(width: 24, height: 24)
+                    .foregroundStyle(Color.secondary)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)

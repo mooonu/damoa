@@ -10,12 +10,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Never run `git push` unless the user explicitly asks.
 - When installing a built .app to /Applications, always `rm -rf` the existing app first, then `cp -R`. Never overwrite directly (cp -R into an existing bundle creates a nested copy).
 - Commit at feature-level milestones only — not after every sub-task. Multiple file changes that together complete one feature = one commit.
+- When a commit resolves a GitHub issue, include `Closes #N` at the end of the commit message to automatically close it.
 
 ## Design Principles (strictly enforced)
 
 - Use system fonts only (`.system`)
 - Use SF Symbols icons only
-- Use semantic colors only (`Color.primary`, `.secondary`, `.accentColor`) — no hardcoded color values
+- Use semantic colors only (`Color.primary`, `.secondary`, `.accentColor`) — no hardcoded color values; exception: `Color.orange` is used as the app's accent/highlight color (timer bar, paused state, "어제보다" negative diff)
 - Spacing in 8pt increments (8, 16, 24)
 - Prefer SwiftUI built-in components (`List`, `TextField`, `Button`, `Toggle`)
 - Completed items: apply `.strikethrough` + `.secondary` color to text
@@ -60,7 +61,10 @@ macOS menu bar only app:
 - 중간 정지(전환/완료체크/수동정지) 시 경과 시간만큼 누적 (`stopAndAccumulate()`)
 - 삭제 및 날 초기화 시에는 경과 시간 누적 없이 타이머만 취소 (`cancelTimer()`)
 - **타이머 상태 3단계**: `idle`(▶ 시작 메뉴) / `running`(⏸ 일시정지만 표시) / `paused`(▶ 재개 + ■ 중단 표시)
-- `ActiveTodoRow` 배경: running=`accentColor.opacity(0.10)`, paused=`accentColor.opacity(0.06)`
+- `ActiveTodoRow` 좌측 바: `Color.orange` (강조색, 헤더의 "어제보다" 음수 색과 동일)
+- `ActiveTodoRow` 배경: running=`Color.orange.opacity(0.08)`, paused=`Color.orange.opacity(0.05)`
+- 버튼 아이콘 색상: paused ▶ 재개=`Color.orange`, running ⏸ 정지=`.secondary`, ■ 중단=`.secondary`, idle ▶ 시작=`.secondary`
+- 모든 타이머 버튼 히트 영역: 28×28pt + `.contentShape(Rectangle())`
 - 카운트다운 텍스트에 `.monospacedDigit()` 적용 (숫자 폭 흔들림 방지)
 - 각 버튼에 `.accessibilityLabel` 적용 (일시정지/재개/중단/시작)
 
