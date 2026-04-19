@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - After every commit, update CLAUDE.md to reflect any architectural or structural changes made in that task.
 - Always stage and commit CLAUDE.md together with the related source changes in a single commit — no separate commit message needed for it.
 - Never run `git push` unless the user explicitly asks.
+- When installing a built .app to /Applications, always `rm -rf` the existing app first, then `cp -R`. Never overwrite directly (cp -R into an existing bundle creates a nested copy).
 - Commit at feature-level milestones only — not after every sub-task. Multiple file changes that together complete one feature = one commit.
 
 ## Design Principles (strictly enforced)

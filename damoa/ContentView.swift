@@ -287,6 +287,7 @@ struct PendingTodoRow: View {
                 Circle()
                     .strokeBorder(Color.secondary.opacity(0.5), lineWidth: 1.5)
                     .frame(width: 18, height: 18)
+                    .contentShape(Circle())
             }
             .buttonStyle(.plain)
 
