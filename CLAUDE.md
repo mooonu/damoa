@@ -43,9 +43,9 @@ Open in Xcode: `open damoa.xcodeproj`
 macOS menu bar only app:
 
 - `damoa/damoaApp.swift` — app entry point (`@main`), uses `@NSApplicationDelegateAdaptor(AppDelegate.self)`, body is `Settings { EmptyView() }` (no visible window)
-- `damoa/AppDelegate.swift` — `NSStatusItem` 생성, 클릭 시 `NSPopover`(320×480)로 `ContentView` 표시. `AppState` 인스턴스를 소유하고 `onMenuBarTextChange` 콜백으로 메뉴바 텍스트 갱신
+- `damoa/AppDelegate.swift` — `NSStatusItem` 생성, 클릭 시 `NSPopover`(320×480)로 `ContentView` 표시. `AppState` 인스턴스를 소유하고 `onMenuBarTextChange` 콜백으로 메뉴바 텍스트 갱신. 팝오버 열기 전 `checkAndReloadIfDateChanged()` 호출
 - `damoa/Models.swift` — SwiftData `@Model` 클래스. `TodoItem`(id, title, isCompleted, accumulatedMinutes, createdAt, completedAt, date, dayRecord)과 `DayRecord`(id, date, totalMinutes, todos) 정의. `DayRecord → TodoItem` cascade 삭제 관계
-- `damoa/AppState.swift` — `@Observable @MainActor` 공유 상태. `ModelContext`를 init에서 주입받아 모든 CRUD를 SwiftData로 처리. 포맷 헬퍼(`formatTotal`, `formatAccumulated`, `formatCountdown`)는 분 단위 기준. 타이머 로직은 초 단위 유지
+- `damoa/AppState.swift` — `@Observable @MainActor` 공유 상태. `ModelContext`를 init에서 주입받아 모든 CRUD를 SwiftData로 처리. 포맷 헬퍼(`formatTotal`, `formatAccumulated`, `formatCountdown`)는 분 단위 기준. 타이머 로직은 초 단위 유지. `loadedDateString`으로 현재 로드된 날짜 추적; `checkAndReloadIfDateChanged()`로 날짜 전환 감지 및 재로드; 60초 주기 `dateCheckTimer`로 자정 통과 대응
 - `damoa/ContentView.swift` — 팝오버 UI(320×480). 상단 날짜/누적시간 헤더, 투명 입력 필드, 할 일 목록(진행 중/대기/완료 구분 행), 하단 기록 푸터. `AppState`를 `.environment`로 주입받음
 - `damoa/HistoryView.swift` — 기록 화면. `@Query`로 DayRecord 전체 조회, 날짜별 목록 → 할 일 상세 2단계 내비게이션
 - `damoa/Assets.xcassets` — asset catalog
@@ -66,6 +66,7 @@ macOS menu bar only app:
 - 저장 단위: 분 (`accumulatedMinutes`). 타이머 내부는 초(`remainingSeconds`, `sessionDuration`) 단위 유지, 누적 시 `/60` 변환
 
 ### 통계
+- **날짜 전환 감지**: `loadedDateString`에 현재 로드된 날짜 보관. `checkAndReloadIfDateChanged()`가 오늘 날짜와 다르면 `loadToday()` 재호출. 호출 지점: ① 60초 주기 타이머(자정 자동 전환) ② 팝오버 열기(AppDelegate) ③ `addTodo()` 진입 시
 - `yesterdayDiff: Int?` — 오늘 누적 - 어제 누적. 어제 기록 없거나 차이 0이면 nil. `_yesterdayMinutes`에 앱 시작 시 캐시
 - `streakDays: Int` — 오늘(0m이면 어제)부터 연속으로 totalMinutes > 0인 날 수. save() 시마다 갱신
 - `ContentView` 헤더에 어제 대비 표시 (green/orange), 푸터에 연속 일수 표시

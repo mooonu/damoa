@@ -59,7 +59,9 @@ final class AppState {
 
     private let modelContext: ModelContext
     private var currentDayRecord: DayRecord?
+    private var loadedDateString: String = ""
     private var timerRef: Timer?
+    private var dateCheckTimer: Timer?
     private var sessionDuration: Int = 0
     private var _yesterdayMinutes: Int? = nil
 
@@ -90,6 +92,7 @@ final class AppState {
 
     private func loadToday() {
         let today = todayDateString()
+        loadedDateString = today
         let descriptor = FetchDescriptor<DayRecord>(
             predicate: #Predicate { $0.date == today }
         )
@@ -105,6 +108,24 @@ final class AppState {
         }
         loadYesterdayMinutes()
         refreshStreak()
+        startDateCheckTimer()
+    }
+
+    func checkAndReloadIfDateChanged() {
+        let today = todayDateString()
+        guard today != loadedDateString else { return }
+        cancelTimer()
+        loadToday()
+        notifyMenuBar()
+    }
+
+    private func startDateCheckTimer() {
+        dateCheckTimer?.invalidate()
+        dateCheckTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.checkAndReloadIfDateChanged()
+            }
+        }
     }
 
     private func loadYesterdayMinutes() {
@@ -158,6 +179,7 @@ final class AppState {
     func addTodo(text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
+        checkAndReloadIfDateChanged()
         let item = TodoItem(title: trimmed, date: todayDateString())
         item.dayRecord = currentDayRecord
         modelContext.insert(item)
