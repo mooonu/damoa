@@ -193,6 +193,7 @@ final class AppState {
             stopAndAccumulate()
             notifyMenuBar()
         }
+        item.savedRemainingSeconds = nil
         item.isCompleted.toggle()
         item.completedAt = item.isCompleted ? Date() : nil
         save()
@@ -214,9 +215,25 @@ final class AppState {
 
     func startTimer(for id: UUID, minutes: Int) {
         stopAndAccumulate()
+        if let item = todos.first(where: { $0.id == id }) {
+            item.savedRemainingSeconds = nil
+        }
         activeTimerID = id
         sessionDuration = minutes * 60
         remainingSeconds = minutes * 60
+        isPaused = false
+        scheduleTimer()
+        notifyMenuBar()
+    }
+
+    func resumeTimer(for id: UUID) {
+        guard let item = todos.first(where: { $0.id == id }),
+              let seconds = item.savedRemainingSeconds, seconds > 0 else { return }
+        stopAndAccumulate()
+        item.savedRemainingSeconds = nil
+        activeTimerID = id
+        sessionDuration = seconds
+        remainingSeconds = seconds
         isPaused = false
         scheduleTimer()
         notifyMenuBar()
@@ -252,12 +269,15 @@ final class AppState {
     // MARK: - Private
 
     private func stopAndAccumulate() {
-        if let id = activeTimerID, sessionDuration > 0 {
-            let elapsed = sessionDuration - remainingSeconds
-            let elapsedMinutes = elapsed / 60
-            if elapsedMinutes > 0, let item = todos.first(where: { $0.id == id }) {
-                item.accumulatedMinutes += elapsedMinutes
-                save()
+        if let id = activeTimerID, let item = todos.first(where: { $0.id == id }) {
+            item.savedRemainingSeconds = remainingSeconds
+            if sessionDuration > 0 {
+                let elapsed = sessionDuration - remainingSeconds
+                let elapsedMinutes = elapsed / 60
+                if elapsedMinutes > 0 {
+                    item.accumulatedMinutes += elapsedMinutes
+                    save()
+                }
             }
         }
         cancelTimer()

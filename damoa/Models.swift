@@ -14,6 +14,7 @@ final class TodoItem {
     var title: String
     var isCompleted: Bool
     var accumulatedMinutes: Int
+    var savedRemainingSeconds: Int?
     var createdAt: Date
     var completedAt: Date?
     var date: String
@@ -24,6 +25,7 @@ final class TodoItem {
         self.title = title
         self.isCompleted = false
         self.accumulatedMinutes = 0
+        self.savedRemainingSeconds = nil
         self.createdAt = Date()
         self.completedAt = nil
         self.date = date

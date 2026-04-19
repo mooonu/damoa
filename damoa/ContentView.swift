@@ -241,7 +241,7 @@ struct ActiveTodoRow: View {
                             state.togglePause()
                         } label: {
                             Image(systemName: "play.fill")
-                                .font(.system(size: 11))
+                                .font(.system(size: 14))
                                 .foregroundStyle(Color.orange)
                                 .frame(width: 28, height: 28)
                                 .contentShape(Rectangle())
@@ -253,7 +253,7 @@ struct ActiveTodoRow: View {
                             state.stopTimer()
                         } label: {
                             Image(systemName: "stop.fill")
-                                .font(.system(size: 11))
+                                .font(.system(size: 14))
                                 .foregroundStyle(Color.secondary)
                                 .frame(width: 28, height: 28)
                                 .contentShape(Rectangle())
@@ -265,7 +265,7 @@ struct ActiveTodoRow: View {
                             state.togglePause()
                         } label: {
                             Image(systemName: "pause.fill")
-                                .font(.system(size: 11))
+                                .font(.system(size: 14))
                                 .foregroundStyle(Color.secondary)
                                 .frame(width: 28, height: 28)
                                 .contentShape(Rectangle())
@@ -306,8 +306,26 @@ struct PendingTodoRow: View {
     let state: AppState
     @State private var draftTitle = ""
     @FocusState private var isEditing: Bool
+    @State private var showingCustomInput = false
+    @State private var customMinutesText = ""
+    @FocusState private var isCustomInputFocused: Bool
 
     private var editing: Bool { state.editingTodoID == todo.id }
+
+    private func submitCustomInput() {
+        guard let minutes = Int(customMinutesText.trimmingCharacters(in: .whitespaces)),
+              minutes > 0 else {
+            cancelCustomInput()
+            return
+        }
+        state.startTimer(for: todo.id, minutes: minutes)
+        cancelCustomInput()
+    }
+
+    private func cancelCustomInput() {
+        showingCustomInput = false
+        customMinutesText = ""
+    }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -340,29 +358,79 @@ struct PendingTodoRow: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            if let timeStr = formatAccumulated(todo.accumulatedMinutes) {
-                Text(timeStr)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-            }
-
-            Menu {
-                ForEach([5, 10, 15, 20, 25, 30], id: \.self) { min in
-                    Button("\(min)분") {
-                        state.startTimer(for: todo.id, minutes: min)
-                    }
+            if showingCustomInput {
+                HStack(spacing: 3) {
+                    TextField("", text: $customMinutesText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 13).monospacedDigit())
+                        .frame(width: 36)
+                        .multilineTextAlignment(.trailing)
+                        .focused($isCustomInputFocused)
+                        .onSubmit { submitCustomInput() }
+                        .onKeyPress(.escape) {
+                            cancelCustomInput()
+                            return .handled
+                        }
+                        .onChange(of: customMinutesText) { _, new in
+                            customMinutesText = new.filter { $0.isNumber }
+                        }
+                        .onChange(of: isCustomInputFocused) { _, focused in
+                            if !focused { cancelCustomInput() }
+                        }
+                        .onAppear { isCustomInputFocused = true }
+                    Text("분")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
                 }
-            } label: {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.secondary)
+            } else {
+                if let timeStr = formatAccumulated(todo.accumulatedMinutes) {
+                    Text(timeStr)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+
+                if let saved = todo.savedRemainingSeconds, saved > 0 {
+                    Menu {
+                        Button("이어서 \(formatCountdown(saved))") {
+                            state.resumeTimer(for: todo.id)
+                        }
+                        Divider()
+                        ForEach([5, 10, 15, 20, 25, 30], id: \.self) { min in
+                            Button("\(min)분") {
+                                state.startTimer(for: todo.id, minutes: min)
+                            }
+                        }
+                        Divider()
+                        Button("직접 입력...") { showingCustomInput = true }
+                    } label: {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.orange)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
                     .frame(width: 28, height: 28)
-                    .contentShape(Rectangle())
+                    .accessibilityLabel("재개 또는 새로 시작")
+                } else {
+                    Menu {
+                        ForEach([5, 10, 15, 20, 25, 30], id: \.self) { min in
+                            Button("\(min)분") {
+                                state.startTimer(for: todo.id, minutes: min)
+                            }
+                        }
+                        Divider()
+                        Button("직접 입력...") { showingCustomInput = true }
+                    } label: {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.secondary)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .frame(width: 28, height: 28)
+                    .accessibilityLabel("시작")
+                }
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .accessibilityLabel("시작")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)

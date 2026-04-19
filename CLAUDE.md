@@ -53,14 +53,16 @@ macOS menu bar only app:
 - `damoa/Assets.xcassets` — asset catalog
 
 ### 타이머 동작
-- `PendingTodoRow`의 ▶ 버튼(Menu) → 5/10/15/20/25/30분 선택 → 카운트다운 시작
+- `PendingTodoRow`의 ▶ 버튼(Menu) → 5/10/15/20/25/30분 / 직접 입력 선택 → 카운트다운 시작
 - 동시에 하나의 타이머만 실행 (새 타이머 시작 시 기존 취소)
 - 타이머 가동 중: 메뉴바 텍스트 = 카운트다운 (`"24:38"`, monospacedDigit 폰트 적용)
 - 타이머 미가동: 메뉴바 텍스트 = 총 누적시간
 - 0 도달 시 해당 항목에 세션 시간 자동 누적
 - 중간 정지(전환/완료체크/수동정지) 시 경과 시간만큼 누적 (`stopAndAccumulate()`)
 - 삭제 및 날 초기화 시에는 경과 시간 누적 없이 타이머만 취소 (`cancelTimer()`)
-- **타이머 상태 3단계**: `idle`(▶ 시작 메뉴) / `running`(⏸ 일시정지만 표시) / `paused`(▶ 재개 + ■ 중단 표시)
+- **타이머 상태 3단계**: `idle`(▶ 시작 메뉴 또는 ▶ 즉시재개) / `running`(⏸ 일시정지만 표시) / `paused`(▶ 재개 + ■ 중단 표시)
+- **타이머 재시작**: 모든 중단 경로(■ 중단, 다른 task 시작, ⏸ 후 전환)에서 `stopAndAccumulate()` 호출 시 남은 초를 `TodoItem.savedRemainingSeconds: Int?`에 저장. `savedRemainingSeconds > 0`이면 ▶ 버튼 오렌지색으로 전환, 클릭 시 메뉴 표시: 상단 "이어서 N:SS"(`resumeTimer(for:)`) / 구분선 / 5~30분 / 구분선 / "직접 입력..." 순. 완료 체크·새 타이머 명시적 시작·0 도달 시 `nil` 리셋
+- **직접 입력**: "직접 입력..." 선택 시 행 우측에 인라인 텍스트 필드(`[__]분`) 표시. Enter → 타이머 시작, Esc 또는 포커스 해제 → 취소. 숫자 외 문자 자동 필터링
 - `ActiveTodoRow` 좌측 바: `Color.orange` (강조색, 헤더의 "어제보다" 음수 색과 동일)
 - `ActiveTodoRow` 배경: running=`Color.orange.opacity(0.08)`, paused=`Color.orange.opacity(0.05)`
 - 버튼 아이콘 색상: paused ▶ 재개=`Color.orange`, running ⏸ 정지=`.secondary`, ■ 중단=`.secondary`, idle ▶ 시작=`.secondary`
