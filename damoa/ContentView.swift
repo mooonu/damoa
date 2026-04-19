@@ -225,31 +225,58 @@ struct ActiveTodoRow: View {
                     } else {
                         Text(todo.title)
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.primary.opacity(0.92))
                             .lineLimit(1)
                     }
 
                     Text(formatCountdown(state.remainingSeconds))
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.accentColor)
+                        .font(.system(size: 12).monospacedDigit())
+                        .foregroundStyle(Color.primary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Button {
-                    state.togglePause()
-                } label: {
-                    Image(systemName: state.isPaused ? "play.fill" : "pause.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.accentColor)
-                        .frame(width: 24, height: 24)
+                HStack(spacing: 0) {
+                    if state.isPaused {
+                        Button {
+                            state.togglePause()
+                        } label: {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.accentColor)
+                                .frame(width: 24, height: 24)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("재개")
+
+                        Button {
+                            state.stopTimer()
+                        } label: {
+                            Image(systemName: "stop.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.secondary)
+                                .frame(width: 24, height: 24)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("중단")
+                    } else {
+                        Button {
+                            state.togglePause()
+                        } label: {
+                            Image(systemName: "pause.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.accentColor)
+                                .frame(width: 24, height: 24)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("일시정지")
+                    }
                 }
-                .buttonStyle(.plain)
             }
             .padding(.leading, 13)
             .padding(.trailing, 16)
             .padding(.vertical, 10)
         }
-        .background(Color.accentColor.opacity(0.08))
+        .background(state.isPaused ? Color.accentColor.opacity(0.06) : Color.accentColor.opacity(0.10))
         .onChange(of: state.editingTodoID) { _, id in
             if id == todo.id {
                 draftTitle = todo.title
@@ -331,6 +358,7 @@ struct PendingTodoRow: View {
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .fixedSize()
+            .accessibilityLabel("시작")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)

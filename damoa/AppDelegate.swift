@@ -32,14 +32,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem.button {
-            button.title = appState.menuBarText
+            setMenuBarText(appState.menuBarText)
             button.action = #selector(handleClick)
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.target = self
         }
 
         appState.onMenuBarTextChange = { [weak self] text in
-            self?.statusItem.button?.title = text
+            self?.setMenuBarText(text)
         }
 
         popover = NSPopover()
@@ -78,6 +78,16 @@ extension AppDelegate {
             statusItem.menu = nil
         } else {
             togglePopover()
+        }
+    }
+
+    private func setMenuBarText(_ text: String) {
+        guard let button = statusItem.button else { return }
+        if text.contains(":") {
+            let font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+            button.attributedTitle = NSAttributedString(string: text, attributes: [.font: font])
+        } else {
+            button.attributedTitle = NSAttributedString(string: text)
         }
     }
 

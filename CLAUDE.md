@@ -54,11 +54,15 @@ macOS menu bar only app:
 ### 타이머 동작
 - `PendingTodoRow`의 ▶ 버튼(Menu) → 5/10/15/20/25/30분 선택 → 카운트다운 시작
 - 동시에 하나의 타이머만 실행 (새 타이머 시작 시 기존 취소)
-- 타이머 가동 중: 메뉴바 텍스트 = 카운트다운 (`"24:38"`)
+- 타이머 가동 중: 메뉴바 텍스트 = 카운트다운 (`"24:38"`, monospacedDigit 폰트 적용)
 - 타이머 미가동: 메뉴바 텍스트 = 총 누적시간
 - 0 도달 시 해당 항목에 세션 시간 자동 누적
 - 중간 정지(전환/완료체크/수동정지) 시 경과 시간만큼 누적 (`stopAndAccumulate()`)
 - 삭제 및 날 초기화 시에는 경과 시간 누적 없이 타이머만 취소 (`cancelTimer()`)
+- **타이머 상태 3단계**: `idle`(▶ 시작 메뉴) / `running`(⏸ 일시정지만 표시) / `paused`(▶ 재개 + ■ 중단 표시)
+- `ActiveTodoRow` 배경: running=`accentColor.opacity(0.10)`, paused=`accentColor.opacity(0.06)`
+- 카운트다운 텍스트에 `.monospacedDigit()` 적용 (숫자 폭 흔들림 방지)
+- 각 버튼에 `.accessibilityLabel` 적용 (일시정지/재개/중단/시작)
 
 ### 누적시간 표시 규칙
 - 0분: 표시 안 함 (항목 행), `"0m"` (헤더 합계)
