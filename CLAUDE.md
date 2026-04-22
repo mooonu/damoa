@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Use semantic colors only (`Color.primary`, `.secondary`, `.accentColor`) — no hardcoded color values; exception: `Color.orange` is used as the app's accent/highlight color (timer bar, paused state, "어제보다" negative diff)
 - Spacing in 8pt increments (8, 16, 24)
 - Prefer SwiftUI built-in components (`List`, `TextField`, `Button`, `Toggle`)
-- Completed items: apply `.strikethrough` + `.secondary` color to text
+- Completed items: apply `.strikethrough` + `.secondary` color to text; displayed in a `ScrollView` capped at `maxHeight: 132` (≈3 rows); all completed items are shown (no `.suffix` truncation)
 - Do not display redundant zero values (e.g. `0h 00m` → `0m`)
 
 ## Project Overview

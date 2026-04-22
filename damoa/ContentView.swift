@@ -32,7 +32,7 @@ struct ContentView: View {
     }
 
     private var completedTodos: [TodoItem] {
-        Array(state.todos.filter { $0.isCompleted }.suffix(3))
+        state.todos.filter { $0.isCompleted }
     }
 
     private var streakColor: Color {
@@ -132,9 +132,12 @@ struct ContentView: View {
                     Divider()
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
-                    ForEach(completedTodos, id: \.id) { todo in
-                        CompletedTodoRow(todo: todo, state: state)
+                    ScrollView {
+                        ForEach(completedTodos, id: \.id) { todo in
+                            CompletedTodoRow(todo: todo, state: state)
+                        }
                     }
+                    .frame(maxHeight: 132)
                 }
             }
         }
