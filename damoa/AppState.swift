@@ -48,6 +48,7 @@ func todayDateString() -> String {
 @MainActor
 final class AppState {
     var todos: [TodoItem] = []
+    var pins: [PinItem] = []
     var activeTimerID: UUID? = nil
     var remainingSeconds: Int = 0
     var isPaused: Bool = false
@@ -86,9 +87,15 @@ final class AppState {
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
         loadToday()
+        loadPins()
     }
 
     // MARK: - Load
+
+    private func loadPins() {
+        let descriptor = FetchDescriptor<PinItem>(sortBy: [SortDescriptor(\.createdAt)])
+        pins = (try? modelContext.fetch(descriptor)) ?? []
+    }
 
     private func loadToday() {
         let today = todayDateString()
@@ -159,6 +166,25 @@ final class AppState {
             checkDate = cal.date(byAdding: .day, value: -1, to: checkDate)!
         }
         streakDays = count
+    }
+
+    // MARK: - Pin CRUD
+
+    func addPin(text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let item = PinItem(title: trimmed)
+        modelContext.insert(item)
+        pins.append(item)
+        try? modelContext.save()
+    }
+
+    func deletePin(id: UUID) {
+        if let item = pins.first(where: { $0.id == id }) {
+            modelContext.delete(item)
+            pins.removeAll { $0.id == id }
+        }
+        try? modelContext.save()
     }
 
     // MARK: - CRUD

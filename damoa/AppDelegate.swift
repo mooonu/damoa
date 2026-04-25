@@ -22,7 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
 
         do {
-            modelContainer = try ModelContainer(for: TodoItem.self, DayRecord.self)
+            modelContainer = try ModelContainer(for: TodoItem.self, DayRecord.self, PinItem.self)
         } catch {
             fatalError("ModelContainer 생성 실패: \(error)")
         }

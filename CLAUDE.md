@@ -52,6 +52,13 @@ macOS menu bar only app:
 - `damoa/HistoryView.swift` — 기록 화면. `@Query`로 DayRecord 전체 조회, 날짜별 목록 → 할 일 상세 2단계 내비게이션
 - `damoa/Assets.xcassets` — asset catalog
 
+### Pin(리마인드) 동작
+- `PinItem` SwiftData 모델 (`id: UUID`, `title: String`, `createdAt: Date`) — 날짜 무관, 앱 전체에서 유지
+- 핀 0개면 핀 섹션 숨김. 1개 이상이면 할 일 목록 위(날짜 헤더 아래, 할 일 추가 입력 위)에 표시
+- 각 항목 좌측 3px 회색 바 (`Color.secondary.opacity(0.3)`) — 주황 타이머 바와 명확히 구분
+- 추가: 하단 footer 📌(`pin.fill`) 버튼 클릭 → 핀 섹션에 인라인 텍스트 필드 표시 → Enter 확정 / Esc·포커스 해제 취소
+- 삭제: 우클릭 컨텍스트 메뉴 "삭제"만 제공 (완료·체크·타이머 없음)
+
 ### 타이머 동작
 - `PendingTodoRow`의 ▶ 버튼(Menu) → 5/10/15/20/25/30분 / 직접 입력 선택 → 카운트다운 시작
 - 동시에 하나의 타이머만 실행 (새 타이머 시작 시 기존 취소)

@@ -9,6 +9,19 @@ import SwiftData
 import Foundation
 
 @Model
+final class PinItem {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var createdAt: Date
+
+    init(title: String) {
+        self.id = UUID()
+        self.title = title
+        self.createdAt = Date()
+    }
+}
+
+@Model
 final class TodoItem {
     @Attribute(.unique) var id: UUID
     var title: String

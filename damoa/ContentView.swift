@@ -14,6 +14,9 @@ struct ContentView: View {
     @State private var newTodoText = ""
     @State private var showHistory = false
     @State private var displayedStreak: Int = 0
+    @State private var showPinInput = false
+    @State private var newPinText = ""
+    @FocusState private var isPinInputFocused: Bool
 
     private var dateString: String {
         let f = DateFormatter()
@@ -53,6 +56,10 @@ struct ContentView: View {
         VStack(spacing: 0) {
             headerSection
             Divider()
+            if !state.pins.isEmpty || showPinInput {
+                pinSection
+                Divider()
+            }
             inputSection
             Divider()
             todoListSection
@@ -62,6 +69,39 @@ struct ContentView: View {
         .frame(width: 300)
         .onChange(of: state.popoverOpenToken) { _, _ in
             animateStreak()
+        }
+    }
+
+    // MARK: - Pin Section
+
+    private var pinSection: some View {
+        VStack(spacing: 0) {
+            ForEach(state.pins, id: \.id) { pin in
+                PinItemRow(pin: pin, state: state)
+            }
+            if showPinInput {
+                HStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.3))
+                        .frame(width: 3)
+                    TextField("리마인드 추가", text: $newPinText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 14))
+                        .focused($isPinInputFocused)
+                        .onSubmit { submitPin() }
+                        .onKeyPress(.escape) {
+                            cancelPinInput()
+                            return .handled
+                        }
+                        .onChange(of: isPinInputFocused) { _, focused in
+                            if !focused { cancelPinInput() }
+                        }
+                        .onAppear { isPinInputFocused = true }
+                        .padding(.leading, 13)
+                        .padding(.trailing, 16)
+                        .padding(.vertical, 10)
+                }
+            }
         }
     }
 
@@ -155,6 +195,16 @@ struct ContentView: View {
 
             Spacer()
 
+            Button {
+                showPinInput = true
+            } label: {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("리마인드 추가")
+
             if state.streakDays > 0 {
                 HStack(spacing: 0) {
                     Text("\(displayedStreak)")
@@ -164,6 +214,7 @@ struct ContentView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
+                .padding(.leading, 8)
             }
         }
         .padding(.horizontal, 16)
@@ -179,6 +230,21 @@ struct ContentView: View {
         newTodoText = ""
     }
 
+    private func submitPin() {
+        let trimmed = newPinText.trimmingCharacters(in: .whitespaces)
+        if !trimmed.isEmpty {
+            state.addPin(text: trimmed)
+        }
+        showPinInput = false
+        newPinText = ""
+    }
+
+    private func cancelPinInput() {
+        guard showPinInput else { return }
+        showPinInput = false
+        newPinText = ""
+    }
+
     private func animateStreak() {
         let target = state.streakDays
         guard target > 0 else {
@@ -192,6 +258,37 @@ struct ContentView: View {
             for i in 1...steps {
                 try? await Task.sleep(for: .seconds(stepDuration))
                 displayedStreak = (i == steps) ? target : max(1, target * i / steps)
+            }
+        }
+    }
+}
+
+// MARK: - Pin Item Row
+
+struct PinItemRow: View {
+    let pin: PinItem
+    let state: AppState
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Rectangle()
+                .fill(Color.secondary.opacity(0.3))
+                .frame(width: 3)
+
+            Text(pin.title)
+                .font(.system(size: 14))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 13)
+                .padding(.trailing, 16)
+                .padding(.vertical, 10)
+        }
+        .contextMenu {
+            Button(role: .destructive) {
+                state.deletePin(id: pin.id)
+            } label: {
+                Label("삭제", systemImage: "trash")
             }
         }
     }
