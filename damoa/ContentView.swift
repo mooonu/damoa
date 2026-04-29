@@ -97,10 +97,9 @@ struct ContentView: View {
                             if !focused { cancelPinInput() }
                         }
                         .onAppear { isPinInputFocused = true }
-                        .padding(.leading, 13)
-                        .padding(.trailing, 16)
-                        .padding(.vertical, 10)
+                        .padding(.horizontal, 13)
                 }
+                .frame(height: 32)
             }
         }
     }
@@ -276,14 +275,13 @@ struct PinItemRow: View {
                 .frame(width: 3)
 
             Text(pin.title)
-                .font(.system(size: 14))
+                .font(.system(size: 13))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 13)
-                .padding(.trailing, 16)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 13)
         }
+        .frame(height: 32)
         .contextMenu {
             Button(role: .destructive) {
                 state.deletePin(id: pin.id)
