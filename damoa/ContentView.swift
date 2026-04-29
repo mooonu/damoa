@@ -57,8 +57,9 @@ struct ContentView: View {
             headerSection
             Divider()
             if !state.pins.isEmpty || showPinInput {
-                pinSection
-                Divider()
+                pinCardSection
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
             }
             inputSection
             Divider()
@@ -72,21 +73,36 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Pin Section
+    // MARK: - Pin Card Section
 
-    private var pinSection: some View {
-        VStack(spacing: 0) {
-            ForEach(state.pins, id: \.id) { pin in
-                PinItemRow(pin: pin, state: state)
-            }
-            if showPinInput {
-                HStack(spacing: 0) {
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.3))
-                        .frame(width: 3)
-                    TextField("리마인드 추가", text: $newPinText)
+    private var pinCardSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("리마인드")
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
+                .tracking(0.4)
+
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(state.pins, id: \.id) { pin in
+                    Text(pin.title)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 3)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                state.deletePin(id: pin.id)
+                            } label: {
+                                Label("삭제", systemImage: "trash")
+                            }
+                        }
+                }
+
+                if showPinInput {
+                    TextField("항목 추가", text: $newPinText)
                         .textFieldStyle(.plain)
-                        .font(.system(size: 14))
+                        .font(.system(size: 12))
                         .focused($isPinInputFocused)
                         .onSubmit { submitPin() }
                         .onKeyPress(.escape) {
@@ -97,11 +113,17 @@ struct ContentView: View {
                             if !focused { cancelPinInput() }
                         }
                         .onAppear { isPinInputFocused = true }
-                        .padding(.horizontal, 13)
+                        .padding(.vertical, 3)
                 }
-                .frame(height: 32)
             }
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        )
     }
 
     // MARK: - Header
@@ -257,36 +279,6 @@ struct ContentView: View {
             for i in 1...steps {
                 try? await Task.sleep(for: .seconds(stepDuration))
                 displayedStreak = (i == steps) ? target : max(1, target * i / steps)
-            }
-        }
-    }
-}
-
-// MARK: - Pin Item Row
-
-struct PinItemRow: View {
-    let pin: PinItem
-    let state: AppState
-
-    var body: some View {
-        HStack(spacing: 0) {
-            Rectangle()
-                .fill(Color.secondary.opacity(0.3))
-                .frame(width: 3)
-
-            Text(pin.title)
-                .font(.system(size: 13))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 13)
-        }
-        .frame(height: 32)
-        .contextMenu {
-            Button(role: .destructive) {
-                state.deletePin(id: pin.id)
-            } label: {
-                Label("삭제", systemImage: "trash")
             }
         }
     }
